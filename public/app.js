@@ -54,12 +54,14 @@ dropZone.addEventListener('drop', (e) => {
 fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
 
 function addFiles(fileList) {
+  console.log('[addFiles] called with', fileList.length, 'files');
   for (const file of fileList) {
     if (referenceImages.length >= 8) break; // UI显示0-8张
     if (!file.type.startsWith('image/')) continue;
     const reader = new FileReader();
     reader.onload = (e) => {
       referenceImages.push({ file, dataURL: e.target.result });
+      console.log('[addFiles] loaded, total:', referenceImages.length);
       renderThumbs();
     };
     reader.readAsDataURL(file);
@@ -129,7 +131,7 @@ async function generate() {
     const resp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, params, _debug: { refCount: referenceImages.length, hasImages: !!params.images } }),
+      body: JSON.stringify({ prompt, params, _debug: { refCount: referenceImages.length, hasImages: !!params.images, thumbCount: thumbsEl.children.length } }),
     });
     const data = await resp.json();
     if (!resp.ok || data.error) {
