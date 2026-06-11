@@ -102,10 +102,10 @@ async function generate() {
   try {
     const params = { size, quality };
     if (referenceImages.length > 0) {
-      params.images = referenceImages.map((img) => {
-        const b64 = img.dataURL.split(',')[1];
-        return b64;
-      });
+      params.images = referenceImages.map((img) => ({
+        type: 'image_url',
+        image_url: { url: img.dataURL },
+      }));
     }
 
     const resp = await fetch('/api/generate', {
