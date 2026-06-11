@@ -153,8 +153,10 @@ app.post('/api/upload', async (req, res) => {
     }
     const base64 = dataURL.split(',')[1];
     const buffer = Buffer.from(base64, 'base64');
+    // Node.js FormData 不接受 Buffer，必须转成 Blob
+    const blob = new Blob([buffer], { type: 'image/png' });
     const formData = new FormData();
-    formData.append('smfile', buffer, 'image.png');
+    formData.append('smfile', blob, 'image.png');
     formData.append('format', 'json');
     console.log('[upload] posting to sm.ms, buffer size:', buffer.length);
     const uploadResp = await fetch('https://sm.ms/api/v2/upload', {
