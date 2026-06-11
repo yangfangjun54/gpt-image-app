@@ -22,8 +22,9 @@ app.use(express.static(join(__dirname, 'public')));
 // 代理：创建生成任务 + 自动轮询结果
 app.post('/api/generate', async (req, res) => {
   try {
-    const { prompt, params } = req.body;
+    const { prompt, params, _debug } = req.body;
     console.log('[generate] params:', JSON.stringify(params).slice(0, 500));
+    if (_debug) console.log('[generate] _debug:', JSON.stringify(_debug));
     const genResp = await fetch(`${BASE_URL}/v1/media/generate`, {
       method: 'POST',
       headers: {

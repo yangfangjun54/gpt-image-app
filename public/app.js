@@ -129,7 +129,7 @@ async function generate() {
     const resp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, params }),
+      body: JSON.stringify({ prompt, params, _debug: { refCount: referenceImages.length, hasImages: !!params.images } }),
     });
     const data = await resp.json();
     if (!resp.ok || data.error) {
