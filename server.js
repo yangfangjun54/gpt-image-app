@@ -34,13 +34,15 @@ app.post('/api/generate', async (req, res) => {
       body: JSON.stringify({ model: 'gpt-image-2', prompt, params }),
     });
     const genText = await genResp.text();
+    console.log('[generate] upstream status:', genResp.status, 'body:', genText.slice(0, 1000));
     let genData;
     try { genData = JSON.parse(genText); } catch {
-      return res.status(502).json({ error: 'Upstream API returned non-JSON', status: genResp.status, body: genText.slice(0, 500) });
+      return res.status(502).json({ error: 'Upstream API returned non-JSON', status: genResp.status, body: genText.slice(0, 1000) });
     }
 
     // 提取 task_id（兼容不同返回格式）
     const taskId = genData?.data?.task_id || genData?.task_id;
+    console.log('[generate] genData keys:', Object.keys(genData), 'taskId:', taskId);
     
     // 情况1：同步返回结果（直接有 data[0].url）
     if (genData?.data && !taskId) {
@@ -50,6 +52,7 @@ app.post('/api/generate', async (req, res) => {
     
     // 情况2：异步任务，需要轮询
     if (!taskId) {
+      console.log('[generate] ❌ NO taskId, full genData:', JSON.stringify(genData).slice(0, 500));
       return res.status(502).json({ error: 'No task_id and no result in upstream response', upstream: genData });
     }
 
@@ -72,14 +75,14 @@ app.post('/api/generate', async (req, res) => {
 
       // 判断任务是否完成（官方文档：用 is_final === true 判断）
       if (statusData?.is_final === true) {
-        console.log(`[poll] task_id=${taskId} completed, state=${statusData.state}`);
+        console.log(`[poll] ✅ task_id=${taskId} completed, state=${statusData.state}, result_url=${statusData.result_url ? 'present' : 'MISSING'}`);
         // 返回格式：{ result_url, state, is_final, ... }
         return res.json(statusData);
       }
       
       // 判断任务是否失败
       if (statusData?.state === 'failed') {
-        console.error(`[poll] task_id=${taskId} failed:`, statusData.error);
+        console.error(`[poll] ❌ task_id=${taskId} failed:`, statusData.error);
         return res.status(502).json({ error: 'Task failed', detail: statusData });
       }
 
