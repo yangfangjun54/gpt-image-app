@@ -100,6 +100,7 @@ async function generate() {
   setStatus('正在提交任务…');
 
   try {
+    console.log('[generate] referenceImages count:', referenceImages.length);
     const params = { size, quality };
     if (referenceImages.length > 0) {
       console.log('[generate] uploading', referenceImages.length, 'reference images...');
