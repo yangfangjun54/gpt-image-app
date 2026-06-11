@@ -144,40 +144,44 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-// POST /api/upload — upload base64 image to sm.ms, return public URL
+// 内存参考图存储（短期，生成请求期间有效）
+const refImageStore = new Map(); // id -> { mime, buffer }
+
+// POST /api/upload — 存 base64 到内存，返回本服务公网 URL
 app.post('/api/upload', async (req, res) => {
   try {
     const { dataURL } = req.body;
     if (!dataURL || !dataURL.startsWith('data:')) {
       return res.status(400).json({ error: 'valid dataURL required' });
     }
+    const mime = dataURL.split(';')[0].split(':')[1] || 'image/png';
     const base64 = dataURL.split(',')[1];
     const buffer = Buffer.from(base64, 'base64');
-    // Node.js FormData 不接受 Buffer，必须转成 Blob
-    const blob = new Blob([buffer], { type: 'image/png' });
-    const formData = new FormData();
-    formData.append('smfile', blob, 'image.png');
-    formData.append('format', 'json');
-    console.log('[upload] posting to sm.ms, buffer size:', buffer.length);
-    const uploadResp = await fetch('https://sm.ms/api/v2/upload', {
-      method: 'POST',
-      body: formData,
-    });
-    const result = await uploadResp.json();
-    console.log('[upload] sm.ms response:', JSON.stringify(result).slice(0, 300));
-    if (result.success || result.code === 'success') {
-      const url = result.data?.url || result.data?.image;
-      return res.json({ url });
-    }
-    // 如果图片已存在，sm.ms 会返回 code=image_repeated，带 URL
-    if (result.code === 'image_repeated' && result.images) {
-      return res.json({ url: result.images });
-    }
-    return res.status(500).json({ error: 'upload failed', detail: JSON.stringify(result).slice(0, 300) });
+    const id = 'ref_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    refImageStore.set(id, { mime, buffer });
+    // 5 分钟后自动清理
+    setTimeout(() => refImageStore.delete(id), 5 * 60 * 1000);
+    const publicUrl = `${BASE_URL.replace(/\/v1$/, '')}/api/ref-image/${id}`;
+    // Railway 的公网域名
+    const host = req.get('host');
+    const scheme = req.protocol;
+    const selfUrl = `${scheme}://${host}/api/ref-image/${id}`;
+    console.log('[upload] stored ref image, id:', id, 'url:', selfUrl);
+    res.json({ url: selfUrl });
   } catch (err) {
     console.error('[upload] error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/ref-image/:id — 读取内存中的参考图
+app.get('/api/ref-image/:id', (req, res) => {
+  const entry = refImageStore.get(req.params.id);
+  if (!entry) return res.status(404).send('Image not found or expired');
+  res.set('Content-Type', entry.mime);
+  res.set('Cache-Control', 'no-store');
+  res.set('Access-Control-Allow-Origin', '*');
+  res.send(entry.buffer);
 });
 
 // GET /api/debug — 诊断端点
