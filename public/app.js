@@ -1,4 +1,4 @@
-console.log('[APP-v9] JS loaded OK');
+console.log('[APP-v21] JS loaded OK');
 const promptEl = document.getElementById('prompt');
 const charNum = document.getElementById('char-num');
 const clearBtn = document.getElementById('clear-btn');

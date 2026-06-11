@@ -133,7 +133,7 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-// POST /api/upload — upload base64 image to 0x0.st, return public URL
+// POST /api/upload — upload base64 image to Catbox.moe, return public URL
 app.post('/api/upload', async (req, res) => {
   try {
     const { dataURL } = req.body;
@@ -144,14 +144,15 @@ app.post('/api/upload', async (req, res) => {
     const buffer = Buffer.from(base64, 'base64');
     const blob = new Blob([buffer], { type: 'image/png' });
     const formData = new FormData();
-    formData.append('file', blob, 'image.png');
-    console.log('[upload] posting to 0x0.st, buffer size:', buffer.length);
-    const uploadResp = await fetch('https://0x0.st', {
+    formData.append('reqtype', 'fileupload');
+    formData.append('fileToUpload', blob, 'image.png');
+    console.log('[upload] posting to Catbox.moe, buffer size:', buffer.length);
+    const uploadResp = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       body: formData,
     });
     const respText = await uploadResp.text();
-    console.log('[upload] 0x0.st response:', uploadResp.status, respText.slice(0, 200));
+    console.log('[upload] Catbox.moe response:', uploadResp.status, respText.slice(0, 200));
     if (!respText.startsWith('http')) {
       return res.status(500).json({ error: 'upload failed', detail: respText });
     }
