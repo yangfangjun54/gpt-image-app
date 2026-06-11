@@ -19,11 +19,11 @@ if (!API_KEY) {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(join(__dirname, 'public')));
 
-// 代理：创建生成任务
+// 代理：创建生成任务 + 自动轮询结果
 app.post('/api/generate', async (req, res) => {
   try {
     const { prompt, params } = req.body;
-    const resp = await fetch(`${BASE_URL}/v1/media/generate`, {
+    const genResp = await fetch(`${BASE_URL}/v1/media/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,12 +31,50 @@ app.post('/api/generate', async (req, res) => {
       },
       body: JSON.stringify({ model: 'gpt-image-2', prompt, params }),
     });
-    const text = await resp.text();
-    let data;
-    try { data = JSON.parse(text); } catch {
-      return res.status(502).json({ error: 'Upstream API returned non-JSON', status: resp.status, body: text.slice(0, 500) });
+    const genText = await genResp.text();
+    let genData;
+    try { genData = JSON.parse(genText); } catch {
+      return res.status(502).json({ error: 'Upstream API returned non-JSON', status: genResp.status, body: genText.slice(0, 500) });
     }
-    res.json(data);
+
+    // 提取 task_id（兼容不同返回格式）
+    const taskId = genData?.data?.task_id || genData?.task_id;
+    if (!taskId) {
+      return res.json(genData); // 如果不是异步模式，直接返回
+    }
+
+    // 自动轮询 status，最多 60 次（约 2 分钟）
+    let attempts = 0;
+    const maxAttempts = 60;
+    while (attempts < maxAttempts) {
+      await new Promise(r => setTimeout(r, 3000)); // 等 3 秒
+      attempts++;
+
+      const statusResp = await fetch(`${BASE_URL}/v1/media/status?task_id=${encodeURIComponent(taskId)}`, {
+        headers: { 'Authorization': `Bearer ${API_KEY}` },
+      });
+      const statusText = await statusResp.text();
+      let statusData;
+      try { statusData = JSON.parse(statusText); } catch {
+        console.error('Status parse error:', statusText.slice(0, 200));
+        continue; // 解析失败，继续轮询
+      }
+
+      // 判断任务是否完成（根据 API 返回格式调整）
+      const isDone = statusData?.data?.result_url || statusData?.result_url || statusData?.data?.status === 'success';
+      if (isDone) {
+        return res.json(statusData);
+      }
+      const isFailed = statusData?.data?.status === 'failed' || statusData?.status === 'failed';
+      if (isFailed) {
+        return res.status(502).json({ error: 'Task failed', detail: statusData });
+      }
+
+      console.log(`[poll] task_id=${taskId} attempt=${attempts} status=pending`);
+    }
+
+    // 超时
+    res.status(504).json({ error: 'Task timeout', task_id: taskId, attempts });
   } catch (err) {
     console.error('Generate error:', err);
     res.status(500).json({ error: err.message });
