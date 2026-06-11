@@ -122,9 +122,7 @@ async function generate() {
       console.log('[generate] uploaded URLs:', uploadedUrls.length);
       if (uploadedUrls.length > 0) {
         params.images = uploadedUrls.map((url) => ({
-          type: 'image_url',
-          image_url: { url },
-        }));
+          url  // 上游要求 images 为字符串 URL 数组
       }
     }
 
