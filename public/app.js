@@ -102,6 +102,7 @@ async function generate() {
   try {
     const params = { size, quality };
     if (referenceImages.length > 0) {
+      console.log('[generate] uploading', referenceImages.length, 'reference images...');
       // Upload base64 images to get public URLs (API requires public URLs)
       const uploadedUrls = [];
       for (const img of referenceImages) {
@@ -111,9 +112,11 @@ async function generate() {
           body: JSON.stringify({ dataURL: img.dataURL }),
         });
         const uploadData = await uploadResp.json();
+        console.log('[generate] upload result:', JSON.stringify(uploadData).slice(0, 200));
         if (!uploadData.url) console.warn('Upload failed for ref image:', uploadData.error);
         else uploadedUrls.push(uploadData.url);
       }
+      console.log('[generate] uploaded URLs:', uploadedUrls.length);
       if (uploadedUrls.length > 0) {
         params.images = uploadedUrls.map((url) => ({
           type: 'image_url',
