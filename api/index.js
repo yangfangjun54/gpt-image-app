@@ -54,6 +54,31 @@ export default async function handler(req, res) {
     }
   }
 
+  // POST /api/upload — upload base64 image to 0x0.st, return public URL
+  if (method === 'POST' && path === 'upload') {
+    try {
+      const { dataURL } = req.body;
+      if (!dataURL || !dataURL.startsWith('data:')) {
+        return res.status(400).json({ error: 'valid dataURL required' });
+      }
+      const base64 = dataURL.split(',')[1];
+      const buffer = Buffer.from(base64, 'base64');
+      // Upload to 0x0.st (no auth needed, returns URL in response body)
+      const uploadResp = await fetch('https://0x0.st', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: buffer,
+      });
+      const url = await uploadResp.text();
+      if (!url.startsWith('http')) {
+        return res.status(500).json({ error: 'upload failed', detail: url });
+      }
+      return res.json({ url: url.trim() });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // GET /api/status
   if (method === 'GET' && path === 'status') {
     try {
