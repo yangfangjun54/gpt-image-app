@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPT Image 2</title>
+  <link rel="icon" href="https://openai.com/favicon.ico">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="card">
+        <label class="field-label">描述你想要生成的图像<span class="required">*</span></label>
+        <textarea id="prompt" rows="4" placeholder="生成【星巴克】2026年春季新品上市的宣传海报，包含产品图片、促销信息和品牌元素"></textarea>
+        <div class="char-count"><span id="char-num">0</span> / 3000 <a href="#" id="clear-btn">清空</a></div>
+      </div>
+      <div class="card">
+        <label class="field-label">上传参考图(0 - 8张)<span class="required">*</span></label>
+        <div id="drop-zone" class="drop-zone">
+          <div class="plus-icon">+</div>
+          <div class="upload-text">
+            <p>点击图片上传</p>
+            <p class="sub-text">支持 PNG、JPG 格式<br>图片总大小上限10M</p>
+          </div>
+          <input type="file" id="file-input" accept="image/*" multiple hidden>
+        </div>
+        <div id="thumbs" class="thumbs"></div>
+      </div>
+      <div class="card">
+        <label class="field-label">质量<span class="required">*</span></label>
+        <div class="btn-group" id="quality-group">
+          <button data-value="low" class="opt-btn">低</button>
+          <button data-value="medium" class="opt-btn active">中</button>
+          <button data-value="high" class="opt-btn">高</button>
+        </div>
+      </div>
+      <div class="card">
+        <label class="field-label">分辨率<span class="required">*</span></label>
+        <div class="btn-group" id="resolution-group">
+          <button data-value="1024x1024" class="opt-btn">1K</button>
+          <button data-value="2048x2048" class="opt-btn active">2K</button>
+          <button data-value="3840x2160" class="opt-btn">4K</button>
+        </div>
+      </div>
+      <div class="card">
+        <label class="field-label">比例<span class="required">*</span></label>
+        <div class="ratio-grid" id="ratio-grid">
+          <button data-value="auto" class="ratio-btn active"><span class="r-icon">⚡</span><span>自动</span></button>
+          <button data-value="1:1" class="ratio-btn"><span class="r-icon">⬜</span><span>1:1</span></button>
+          <button data-value="3:2" class="ratio-btn"><span class="r-icon">▭</span><span>3:2</span></button>
+          <button data-value="2:3" class="ratio-btn"><span class="r-icon">▯</span><span>2:3</span></button>
+          <button data-value="4:3" class="ratio-btn"><span class="r-icon">▭</span><span>4:3</span></button>
+          <button data-value="3:4" class="ratio-btn"><span class="r-icon">▯</span><span>3:4</span></button>
+          <button data-value="4:5" class="ratio-btn"><span class="r-icon">▯</span><span>4:5</span></button>
+          <button data-value="5:4" class="ratio-btn"><span class="r-icon">▭</span><span>5:4</span></button>
+          <button data-value="9:16" class="ratio-btn"><span class="r-icon">▯</span><span>9:16</span></button>
+          <button data-value="16:9" class="ratio-btn"><span class="r-icon">▭</span><span>16:9</span></button>
+        </div>
+      </div>
+      <button id="generate-btn" class="btn-generate">开始生成</button>
+      <div id="status" class="status"></div>
+    </aside>
+    <main class="gallery">
+      <div id="gallery-grid" class="gallery-grid"></div>
+    </main>
+  </div>
+  <script src="app.js?v=16"></script>
+</body>
+</html>

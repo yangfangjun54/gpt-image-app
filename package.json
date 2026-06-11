@@ -1,0 +1,12 @@
+{
+  "name": "gpt-image-app",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo build not needed"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "dotenv": "^16.4.0"
+  }
+}
