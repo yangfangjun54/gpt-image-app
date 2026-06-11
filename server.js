@@ -31,7 +31,11 @@ app.post('/api/generate', async (req, res) => {
       },
       body: JSON.stringify({ model: 'gpt-image-2', prompt, params }),
     });
-    const data = await resp.json();
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      return res.status(502).json({ error: 'Upstream API returned non-JSON', status: resp.status, body: text.slice(0, 500) });
+    }
     res.json(data);
   } catch (err) {
     console.error('Generate error:', err);
@@ -86,6 +90,52 @@ app.get('/api/status', async (req, res) => {
   } catch (err) {
     console.error('Status error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/upload — upload base64 image to 0x0.st, return public URL
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { dataURL } = req.body;
+    if (!dataURL || !dataURL.startsWith('data:')) {
+      return res.status(400).json({ error: 'valid dataURL required' });
+    }
+    const base64 = dataURL.split(',')[1];
+    const buffer = Buffer.from(base64, 'base64');
+    const uploadResp = await fetch('https://0x0.st', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: buffer,
+    });
+    const url = await uploadResp.text();
+    if (!url.startsWith('http')) {
+      return res.status(500).json({ error: 'upload failed', detail: url });
+    }
+    res.json({ url: url.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/debug — 诊断端点
+app.get('/api/debug', async (req, res) => {
+  try {
+    const testResp = await fetch(`${BASE_URL}/v1/media/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      body: JSON.stringify({ model: 'gpt-image-2', prompt: 'test', params: { size: 'auto' } }),
+    });
+    const testBody = await testResp.text();
+    res.json({
+      baseUrl: BASE_URL,
+      hasApiKey: !!API_KEY,
+      apiKeyPrefix: API_KEY ? API_KEY.slice(0, 8) + '...' : 'NOT SET',
+      upstreamStatus: testResp.status,
+      upstreamContentType: testResp.headers.get('content-type'),
+      upstreamBodyPreview: testBody.slice(0, 500),
+    });
+  } catch (err) {
+    res.json({ error: err.message, baseUrl: BASE_URL, hasApiKey: !!API_KEY });
   }
 });
 
