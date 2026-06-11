@@ -178,7 +178,7 @@ function displayResults(items, prompt) {
     saveHistory(history);
 
     // 渲染卡片
-    const div = makeGalleryItem(url, prompt, timeStr);
+    const div = makeGalleryItem(url, prompt, new Date().toLocaleString('zh-CN'));
     galleryGrid.prepend(div);
   });
 }
