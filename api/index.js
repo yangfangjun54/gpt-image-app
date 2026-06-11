@@ -20,7 +20,11 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({ model: 'gpt-image-2', prompt, params }),
       });
-      const data = await resp.json();
+      const text = await resp.text();
+      let data;
+      try { data = JSON.parse(text); } catch {
+        return res.status(502).json({ error: 'Upstream API returned non-JSON', status: resp.status, body: text.slice(0, 500) });
+      }
       return res.json(data);
     } catch (err) {
       return res.status(500).json({ error: err.message });

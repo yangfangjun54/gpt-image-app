@@ -128,6 +128,11 @@ async function generate() {
       body: JSON.stringify({ prompt, params }),
     });
     const data = await resp.json();
+    if (!resp.ok || data.error) {
+      setStatus('请求失败: ' + (data.error || data.body || JSON.stringify(data).slice(0, 200)), 'error');
+      generateBtn.disabled = false;
+      return;
+    }
     // 同步返回结果（result_url 在顶层）
     if (data.result_url) {
       displayResults([{ url: data.result_url }], prompt);
