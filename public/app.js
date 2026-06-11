@@ -101,9 +101,10 @@ async function generate() {
 
   try {
     const params = { size, quality };
-    if (referenceImages.length > 0) {
-      params.images = referenceImages.map((img) => img.dataURL);
-    }
+    // TODO: API 不支持 base64 格式参考图，暂时禁用
+    // if (referenceImages.length > 0) {
+    //   params.images = referenceImages.map((img) => img.dataURL);
+    // }
 
     const resp = await fetch('/api/generate', {
       method: 'POST',
