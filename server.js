@@ -142,17 +142,22 @@ app.post('/api/upload', async (req, res) => {
     }
     const base64 = dataURL.split(',')[1];
     const buffer = Buffer.from(base64, 'base64');
+    const blob = new Blob([buffer], { type: 'image/png' });
+    const formData = new FormData();
+    formData.append('file', blob, 'image.png');
+    console.log('[upload] posting to 0x0.st, buffer size:', buffer.length);
     const uploadResp = await fetch('https://0x0.st', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: buffer,
+      body: formData,
     });
-    const url = await uploadResp.text();
-    if (!url.startsWith('http')) {
-      return res.status(500).json({ error: 'upload failed', detail: url });
+    const respText = await uploadResp.text();
+    console.log('[upload] 0x0.st response:', uploadResp.status, respText.slice(0, 200));
+    if (!respText.startsWith('http')) {
+      return res.status(500).json({ error: 'upload failed', detail: respText });
     }
-    res.json({ url: url.trim() });
+    res.json({ url: respText.trim() });
   } catch (err) {
+    console.error('[upload] error:', err);
     res.status(500).json({ error: err.message });
   }
 });
