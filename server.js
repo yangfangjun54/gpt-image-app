@@ -23,6 +23,7 @@ app.use(express.static(join(__dirname, 'public')));
 app.post('/api/generate', async (req, res) => {
   try {
     const { prompt, params } = req.body;
+    console.log('[generate] params:', JSON.stringify(params).slice(0, 500));
     const genResp = await fetch(`${BASE_URL}/v1/media/generate`, {
       method: 'POST',
       headers: {
