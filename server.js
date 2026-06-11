@@ -41,8 +41,16 @@ app.post('/api/generate', async (req, res) => {
 
     // 提取 task_id（兼容不同返回格式）
     const taskId = genData?.data?.task_id || genData?.task_id;
+    
+    // 情况1：同步返回结果（直接有 data[0].url）
+    if (genData?.data && !taskId) {
+      console.log('[generate] sync result, returning directly');
+      return res.json(genData);
+    }
+    
+    // 情况2：异步任务，需要轮询
     if (!taskId) {
-      return res.json(genData); // 如果不是异步模式，直接返回
+      return res.status(502).json({ error: 'No task_id and no result in upstream response', upstream: genData });
     }
 
     // 自动轮询 status，最多 60 次（约 2 分钟）
@@ -58,21 +66,24 @@ app.post('/api/generate', async (req, res) => {
       const statusText = await statusResp.text();
       let statusData;
       try { statusData = JSON.parse(statusText); } catch {
-        console.error('Status parse error:', statusText.slice(0, 200));
+        console.error('[poll] Status parse error:', statusText.slice(0, 200));
         continue; // 解析失败，继续轮询
       }
 
-      // 判断任务是否完成（根据 API 返回格式调整）
-      const isDone = statusData?.data?.result_url || statusData?.result_url || statusData?.data?.status === 'success';
-      if (isDone) {
+      // 判断任务是否完成（官方文档：用 is_final === true 判断）
+      if (statusData?.is_final === true) {
+        console.log(`[poll] task_id=${taskId} completed, state=${statusData.state}`);
+        // 返回格式：{ result_url, state, is_final, ... }
         return res.json(statusData);
       }
-      const isFailed = statusData?.data?.status === 'failed' || statusData?.status === 'failed';
-      if (isFailed) {
+      
+      // 判断任务是否失败
+      if (statusData?.state === 'failed') {
+        console.error(`[poll] task_id=${taskId} failed:`, statusData.error);
         return res.status(502).json({ error: 'Task failed', detail: statusData });
       }
 
-      console.log(`[poll] task_id=${taskId} attempt=${attempts} status=pending`);
+      console.log(`[poll] task_id=${taskId} attempt=${attempts} state=${statusData?.state || 'unknown'}`);
     }
 
     // 超时
