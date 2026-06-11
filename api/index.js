@@ -97,5 +97,27 @@ export default async function handler(req, res) {
     }
   }
 
+  // GET /api/debug — 返回配置诊断信息（不含敏感数据）
+  if (method === 'GET' && path === 'debug') {
+    try {
+      const testResp = await fetch(`${BASE_URL}/v1/media/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY?.slice(0, 8)}...` },
+        body: JSON.stringify({ model: 'gpt-image-2', prompt: 'test', params: { size: 'auto' } }),
+      });
+      const testBody = await testResp.text();
+      return res.json({
+        baseUrl: BASE_URL,
+        hasApiKey: !!API_KEY,
+        apiKeyPrefix: API_KEY?.slice(0, 8) + '...',
+        upstreamStatus: testResp.status,
+        upstreamContentType: testResp.headers.get('content-type'),
+        upstreamBodyPreview: testBody.slice(0, 300),
+      });
+    } catch (err) {
+      return res.json({ error: err.message, baseUrl: BASE_URL, hasApiKey: !!API_KEY });
+    }
+  }
+
   return res.status(404).json({ error: 'Not found' });
 }
