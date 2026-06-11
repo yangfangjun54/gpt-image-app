@@ -101,10 +101,12 @@ async function generate() {
 
   try {
     const params = { size, quality };
-    // TODO: API 不支持 base64 格式参考图，暂时禁用
-    // if (referenceImages.length > 0) {
-    //   params.images = referenceImages.map((img) => img.dataURL);
-    // }
+    if (referenceImages.length > 0) {
+      params.images = referenceImages.map((img) => {
+        const b64 = img.dataURL.split(',')[1];
+        return b64;
+      });
+    }
 
     const resp = await fetch('/api/generate', {
       method: 'POST',
