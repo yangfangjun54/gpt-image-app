@@ -144,7 +144,7 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-// POST /api/upload — upload base64 image to Catbox.moe, return public URL
+// POST /api/upload — upload base64 image to sm.ms, return public URL
 app.post('/api/upload', async (req, res) => {
   try {
     const { dataURL } = req.body;
@@ -153,21 +153,25 @@ app.post('/api/upload', async (req, res) => {
     }
     const base64 = dataURL.split(',')[1];
     const buffer = Buffer.from(base64, 'base64');
-    const blob = new Blob([buffer], { type: 'image/png' });
     const formData = new FormData();
-    formData.append('reqtype', 'fileupload');
-    formData.append('fileToUpload', blob, 'image.png');
-    console.log('[upload] posting to Catbox.moe, buffer size:', buffer.length);
-    const uploadResp = await fetch('https://catbox.moe/user/api.php', {
+    formData.append('smfile', buffer, 'image.png');
+    formData.append('format', 'json');
+    console.log('[upload] posting to sm.ms, buffer size:', buffer.length);
+    const uploadResp = await fetch('https://sm.ms/api/v2/upload', {
       method: 'POST',
       body: formData,
     });
-    const respText = await uploadResp.text();
-    console.log('[upload] Catbox.moe response:', uploadResp.status, respText.slice(0, 200));
-    if (!respText.startsWith('http')) {
-      return res.status(500).json({ error: 'upload failed', detail: respText });
+    const result = await uploadResp.json();
+    console.log('[upload] sm.ms response:', JSON.stringify(result).slice(0, 300));
+    if (result.success || result.code === 'success') {
+      const url = result.data?.url || result.data?.image;
+      return res.json({ url });
     }
-    res.json({ url: respText.trim() });
+    // 如果图片已存在，sm.ms 会返回 code=image_repeated，带 URL
+    if (result.code === 'image_repeated' && result.images) {
+      return res.json({ url: result.images });
+    }
+    return res.status(500).json({ error: 'upload failed', detail: JSON.stringify(result).slice(0, 300) });
   } catch (err) {
     console.error('[upload] error:', err);
     res.status(500).json({ error: err.message });
