@@ -121,8 +121,9 @@ async function generate() {
       }
       console.log('[generate] uploaded URLs:', uploadedUrls.length);
       if (uploadedUrls.length > 0) {
-        params.images = uploadedUrls  // 字符串URL数组，上游要求
-    }
+        params.images = uploadedUrls; // 字符串URL数组，上游要求
+      }
+    } // end referenceImages
 
     const resp = await fetch('/api/generate', {
       method: 'POST',
